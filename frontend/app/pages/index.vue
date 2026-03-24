@@ -29,6 +29,7 @@
         :track-temp="telemetry?.TrackTemp ?? 0"
         :air-temp="telemetry?.AirTemp ?? 0"
         :session-time="telemetry?.SessionTime ?? 0"
+        :best-lap-time="telemetry?.LapBestLapTime ?? -1"
       />
     </div>
 

@@ -18,7 +18,10 @@ export default {
         'r-yellow':    '#ffd166', // caution / warning
         'r-green':     '#06d6a0', // safe / go
         'r-blue':      '#4cc9f0', // info
-        'r-purple':    '#7b2d8b',
+        'r-purple':    '#c084fc', // personal best / fastest lap (vivid violet)
+        'r-gold':      '#fbbf24', // P1
+        'r-silver':    '#94a3b8', // P2
+        'r-bronze':    '#f97316', // P3
         'r-text':      '#e8e8f0',
         'r-muted':     '#7070a0',
         'r-dim':       '#3a3a55',

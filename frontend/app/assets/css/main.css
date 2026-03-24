@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Global Reset ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  @apply bg-r-bg text-r-text font-display;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Custom Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { @apply bg-r-surface; }
+::-webkit-scrollbar-thumb { @apply bg-r-border rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-r-dim; }
+
+/* ── Page Transition ──────────────────────────────────────────────────── */
+.page-enter-active,
+.page-leave-active { transition: opacity 0.2s, transform 0.2s; }
+.page-enter-from { opacity: 0; transform: translateY(6px); }
+.page-leave-to   { opacity: 0; transform: translateY(-6px); }
+
+/* ── Racing Card ──────────────────────────────────────────────────────── */
+.r-card {
+  @apply bg-r-card border border-r-border rounded-2xl;
+}
+
+/* ── Data Label ───────────────────────────────────────────────────────── */
+.r-label {
+  @apply text-xs font-mono text-r-muted uppercase tracking-widest;
+}
+
+/* ── Value Display ────────────────────────────────────────────────────── */
+.r-value {
+  @apply font-mono font-semibold text-r-text tabular-nums;
+}
+
+/* ── Glowing accent elements ──────────────────────────────────────────── */
+.glow-green  { text-shadow: 0 0 12px theme('colors.r-green'); }
+.glow-red    { text-shadow: 0 0 12px theme('colors.r-accent'); }
+.glow-yellow { text-shadow: 0 0 12px theme('colors.r-yellow'); }
+.glow-blue   { text-shadow: 0 0 12px theme('colors.r-blue'); }
+
+/* ── Shift-light glow ─────────────────────────────────────────────────── */
+@keyframes shiftFlash {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px 2px theme('colors.r-accent'); }
+  50%       { opacity: 0.3; box-shadow: none; }
+}
+.shift-flash { animation: shiftFlash 0.15s infinite; }
+
+/* ── Status dot ───────────────────────────────────────────────────────── */
+@keyframes statusPulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; }
+  50%       { box-shadow: 0 0 0 4px transparent; }
+}
+.status-dot { animation: statusPulse 2s ease-in-out infinite; }
+
+/* ── Mobile safe areas ────────────────────────────────────────────────── */
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+.safe-top {
+  padding-top: max(env(safe-area-inset-top), 0px);
+}

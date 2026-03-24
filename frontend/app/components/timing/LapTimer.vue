@@ -1,38 +1,81 @@
 <template>
   <div class="r-card p-4 flex flex-col gap-3">
-    <!-- Current lap time (prominent) -->
-    <div class="text-center">
-      <div class="r-label mb-1">Current Lap</div>
+
+    <!-- Header row: label + lap number -->
+    <div class="flex items-center justify-between">
+      <div class="r-label">Lap Times</div>
+      <div class="px-3 py-1 bg-r-surface rounded-full border border-r-border">
+        <span class="r-label mr-1">LAP</span>
+        <span class="font-mono font-bold text-r-text">{{ lap > 0 ? lap : '--' }}</span>
+      </div>
+    </div>
+
+    <!-- Current lap prominent display -->
+    <div class="flex items-end gap-3">
+      <div class="flex-1">
+        <div class="r-label text-[9px] mb-1 tracking-widest">CURRENT</div>
+        <div
+          class="font-mono text-4xl font-black tabular-nums tracking-tight transition-colors duration-200 leading-none"
+          :class="deltaClass"
+        >{{ fmtTime(currentLapTime) }}</div>
+      </div>
+      <!-- Delta bubble -->
       <div
-        class="font-mono text-3xl font-bold tabular-nums tracking-tight transition-colors duration-200"
-        :class="deltaClass"
-      >{{ fmtTime(currentLapTime) }}</div>
-      <div v-if="deltaToBest !== 0" class="mt-0.5 font-mono text-sm" :class="deltaClass">
+        v-if="deltaToBest !== 0 && bestLapTime > 0"
+        class="px-3 py-1.5 rounded-xl font-mono font-bold text-base tabular-nums mb-1 border"
+        :class="deltaToBest < 0
+          ? 'text-r-green border-r-green/30 bg-r-green/10'
+          : deltaToBest < 0.3
+            ? 'text-r-yellow border-r-yellow/30 bg-r-yellow/10'
+            : 'text-r-accent border-r-accent/30 bg-r-accent/10'"
+      >
         {{ deltaToBest > 0 ? '+' : '' }}{{ deltaToBest.toFixed(3) }}
       </div>
     </div>
 
-    <!-- Lap number indicator -->
-    <div class="flex justify-center">
-      <div class="px-3 py-1 bg-r-surface rounded-full border border-r-border">
-        <span class="r-label mr-1">LAP</span>
-        <span class="font-mono font-bold text-r-text">{{ lap }}</span>
+    <!-- Divider -->
+    <div class="h-px bg-r-border" />
+
+    <!-- Last / Best side by side -->
+    <div class="grid grid-cols-2 gap-2">
+      <!-- Last lap -->
+      <div class="bg-r-surface rounded-xl p-3">
+        <div class="r-label text-[9px] mb-1.5 tracking-widest">LAST</div>
+        <div class="font-mono text-lg font-semibold text-r-text tabular-nums leading-none">
+          {{ lastLapTime > 0 ? fmtTime(lastLapTime) : '--:--.---' }}
+        </div>
+        <!-- Delta last vs best -->
+        <div
+          v-if="lastLapTime > 0 && bestLapTime > 0"
+          class="mt-1 font-mono text-[10px] tabular-nums"
+          :class="lastLapTime <= bestLapTime ? 'text-r-green' : 'text-r-muted'"
+        >
+          {{ lastLapTime <= bestLapTime ? '▲ BEST' : '+' + (lastLapTime - bestLapTime).toFixed(3) }}
+        </div>
+      </div>
+
+      <!-- Best lap -->
+      <div class="bg-r-surface rounded-xl p-3 border border-r-purple/30">
+        <div class="r-label text-[9px] mb-1.5 tracking-widest text-r-purple">BEST</div>
+        <div class="font-mono text-lg font-bold tabular-nums leading-none" style="color: #c084fc">
+          {{ bestLapTime > 0 ? fmtTime(bestLapTime) : '--:--.---' }}
+        </div>
+        <div class="mt-1 font-mono text-[10px] text-r-purple/60">Personal</div>
       </div>
     </div>
 
-    <!-- Last / Best row -->
-    <div class="grid grid-cols-2 gap-2">
-      <div class="bg-r-surface rounded-xl p-3 text-center">
-        <div class="r-label text-[10px] mb-1">Last Lap</div>
-        <div class="font-mono text-sm font-semibold text-r-text tabular-nums">
-          {{ fmtTime(lastLapTime) }}
-        </div>
+    <!-- Lap progress bar -->
+    <div>
+      <div class="flex justify-between text-[9px] font-mono text-r-muted mb-1">
+        <span>Lap progress</span>
+        <span>{{ (lapDistPct * 100).toFixed(1) }}%</span>
       </div>
-      <div class="bg-r-surface rounded-xl p-3 text-center border border-r-purple/30">
-        <div class="r-label text-[10px] mb-1 text-r-purple">Best Lap</div>
-        <div class="font-mono text-sm font-bold tabular-nums" style="color: #c084fc">
-          {{ fmtTime(bestLapTime) }}
-        </div>
+      <div class="h-1.5 bg-r-surface rounded-full overflow-hidden border border-r-border">
+        <div
+          class="h-full rounded-full transition-all duration-300"
+          :class="deltaClass.includes('green') ? 'bg-r-green' : deltaClass.includes('yellow') ? 'bg-r-yellow' : 'bg-r-accent'"
+          :style="{ width: `${lapDistPct * 100}%` }"
+        />
       </div>
     </div>
   </div>

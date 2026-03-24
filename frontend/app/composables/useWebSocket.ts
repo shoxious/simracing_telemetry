@@ -5,6 +5,10 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 let fpsTimer: ReturnType<typeof setInterval> | null = null
 let reconnectAttempts = 0
 
+// Shared reactive state accessible from any composable call
+const wsConnected = ref(false)
+const wsStatusText = ref('Connecting...')
+
 function getWsUrl(): string {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   // In Nuxt dev mode, connect to the Go backend on 8080; in production same host
@@ -18,15 +22,21 @@ export function useWebSocket() {
   function connect() {
     if (ws && ws.readyState !== WebSocket.CLOSED) return
 
+    wsStatusText.value = 'Connecting to dashboard...'
+
     try {
       ws = new WebSocket(getWsUrl())
     } catch {
+      wsConnected.value = false
+      wsStatusText.value = 'Cannot reach backend'
       scheduleReconnect()
       return
     }
 
     ws.onopen = () => {
       reconnectAttempts = 0
+      wsConnected.value = true
+      wsStatusText.value = 'Connected – waiting for iRacing...'
       store.setStatus(true, store.simulate)
     }
 
@@ -50,6 +60,10 @@ export function useWebSocket() {
     }
 
     ws.onclose = () => {
+      wsConnected.value = false
+      wsStatusText.value = reconnectAttempts > 0
+        ? `Reconnecting... (attempt ${reconnectAttempts})`
+        : 'Connection lost – reconnecting...'
       store.setStatus(false, store.simulate)
       scheduleReconnect()
     }
@@ -89,5 +103,5 @@ export function useWebSocket() {
     if (fpsTimer) clearInterval(fpsTimer)
   })
 
-  return { connect, disconnect }
+  return { connect, disconnect, wsConnected, wsStatusText }
 }

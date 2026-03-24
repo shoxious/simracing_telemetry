@@ -12,23 +12,33 @@
       <span v-if="simulate" class="px-1.5 py-0.5 rounded text-[9px] font-mono bg-r-yellow/20 text-r-yellow border border-r-yellow/30">SIM</span>
     </div>
 
-    <!-- Center: Live race data (position + best lap + flag) — only when connected -->
-    <div v-if="connected" class="flex items-center gap-2 flex-1 justify-center min-w-0">
+    <!-- Center: Live race data — only when connected -->
+    <div v-if="connected" class="flex items-center gap-2 flex-1 justify-center min-w-0 overflow-hidden">
+
+      <!-- Track name -->
+      <div v-if="trackName" class="hidden sm:flex items-center gap-1.5 min-w-0">
+        <svg viewBox="0 0 16 16" fill="currentColor" class="w-3 h-3 text-r-muted flex-shrink-0">
+          <path d="M8 1a5 5 0 00-5 5c0 3.5 5 9 5 9s5-5.5 5-9a5 5 0 00-5-5zm0 7a2 2 0 110-4 2 2 0 010 4z"/>
+        </svg>
+        <span class="font-mono text-xs text-r-text font-semibold truncate">{{ trackName }}</span>
+      </div>
+
+      <!-- Divider -->
+      <div class="w-px h-5 bg-r-border flex-shrink-0" />
 
       <!-- Position badge -->
       <div
-        class="flex items-center gap-1 px-2.5 py-1 rounded-lg border font-mono font-black text-sm leading-none"
+        class="flex items-center gap-1 px-2.5 py-1 rounded-lg border font-mono font-black text-sm leading-none flex-shrink-0"
         :class="posClass"
       >
         {{ posLabel }}
       </div>
 
       <!-- Divider -->
-      <div class="w-px h-5 bg-r-border hidden sm:block" />
+      <div class="w-px h-5 bg-r-border flex-shrink-0 hidden sm:block" />
 
       <!-- Best lap -->
-      <div class="hidden sm:flex items-center gap-1.5">
-        <!-- Purple dot = fastest personal lap indicator -->
+      <div class="hidden sm:flex items-center gap-1.5 flex-shrink-0">
         <svg viewBox="0 0 10 10" class="w-2.5 h-2.5 flex-shrink-0" :class="hasBest ? 'text-r-purple' : 'text-r-dim'" fill="currentColor">
           <circle cx="5" cy="5" r="5"/>
         </svg>
@@ -39,10 +49,10 @@
       </div>
 
       <!-- Divider -->
-      <div class="w-px h-5 bg-r-border hidden md:block" />
+      <div class="w-px h-5 bg-r-border flex-shrink-0 hidden md:block" />
 
       <!-- Flag indicator -->
-      <div class="hidden md:flex items-center gap-1.5">
+      <div class="hidden md:flex items-center gap-1.5 flex-shrink-0">
         <div class="w-2.5 h-2.5 rounded-sm" :class="flagClass" />
         <span class="text-[10px] font-mono text-r-muted">{{ flagLabel }}</span>
       </div>
@@ -90,6 +100,7 @@ const store = useIRacingStore()
 const { connected, simulate } = storeToRefs(store)
 const { isGreen, isYellow, isRed, position, fmtTime } = useIRacing()
 const { active: wakeLockActive } = useWakeLock()
+const { trackName } = useSession()
 
 const bestLap  = computed(() => store.telemetry?.LapBestLapTime ?? -1)
 const hasBest  = computed(() => bestLap.value > 0)

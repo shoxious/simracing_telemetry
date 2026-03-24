@@ -47,6 +47,7 @@
               </td>
               <td class="px-3 py-3">
                 <div class="flex items-center gap-2">
+                  <span class="font-mono text-[10px] text-r-muted bg-r-surface px-1.5 py-0.5 rounded">#{{ car.number }}</span>
                   <span class="text-r-text" :class="car.isPlayer ? 'font-bold text-r-blue' : ''">
                     {{ car.name }}
                   </span>
@@ -81,23 +82,7 @@
 definePageMeta({ layout: 'default' })
 
 const { telemetry, laps, fmtTime, position } = useIRacing()
-
-// Parse session YAML to get driver names
-const store = useIRacingStore()
-const driverNames = computed(() => {
-  const yaml = store.sessionYaml
-  if (!yaml) return []
-  // Quick regex extraction for names
-  const matches = [...yaml.matchAll(/UserName: (.+)/g)]
-  return matches.map(m => m[1].trim())
-})
-
-const carNames = computed(() => {
-  const yaml = store.sessionYaml
-  if (!yaml) return []
-  const matches = [...yaml.matchAll(/CarScreenName: (.+)/g)]
-  return matches.map(m => m[1].trim())
-})
+const { driverByIdx } = useSession()
 
 const standings = computed(() => {
   const t = telemetry.value
@@ -106,17 +91,23 @@ const standings = computed(() => {
   const playerIdx = t.PlayerCarIdx ?? 0
 
   return t.CarIdxPosition
-    .map((pos, idx) => ({
-      carIdx: idx,
-      position: pos,
-      lapDist: t.CarIdxLapDist?.[idx] ?? 0,
-      lap: t.CarIdxLap?.[idx] ?? 0,
-      estTime: t.CarIdxEstTime?.[idx] ?? 0,
-      isPlayer: idx === playerIdx,
-      name: driverNames.value[idx] ?? `Car #${idx}`,
-      car: carNames.value[idx] ?? '',
-    }))
-    .filter(c => c.position > 0)
+    .map((pos, idx) => {
+      if (pos <= 0) return null
+      const driver = driverByIdx(idx)
+      const estTime = t.CarIdxEstTime?.[idx] ?? 0
+      return {
+        carIdx:   idx,
+        position: pos,
+        lapDist:  t.CarIdxLapDist?.[idx] ?? 0,
+        lap:      t.CarIdxLap?.[idx] ?? 0,
+        estTime,
+        isPlayer: idx === playerIdx,
+        name:     driver?.userName      ?? `Car #${idx}`,
+        car:      driver?.carScreenName ?? '',
+        number:   driver?.carNumber     ?? String(idx),
+      }
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null)
     .sort((a, b) => a.position - b.position)
     .map(c => ({
       ...c,
@@ -131,9 +122,9 @@ function formatGap(estTime: number): string {
 }
 
 function posClass(pos: number): string {
-  if (pos === 1) return 'bg-r-yellow text-black'
-  if (pos === 2) return 'bg-gray-400 text-black'
-  if (pos === 3) return 'bg-amber-600 text-white'
+  if (pos === 1) return 'bg-r-gold/20 text-r-gold border border-r-gold/40'
+  if (pos === 2) return 'bg-r-silver/20 text-r-silver border border-r-silver/40'
+  if (pos === 3) return 'bg-r-bronze/20 text-r-bronze border border-r-bronze/40'
   return 'bg-r-surface text-r-muted border border-r-border'
 }
 </script>

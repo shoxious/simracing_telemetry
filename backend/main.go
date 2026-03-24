@@ -50,8 +50,12 @@ func main() {
 	port := portFromAddr(*addr)
 
 	fmt.Println("╔════════════════════════════════════════╗")
-	fmt.Println("║     SimRacing Live Dashboard v1.0      ║")
+	fmt.Printf( "║   SimRacing Live Dashboard  %-11s║\n", version)
 	fmt.Println("╚════════════════════════════════════════╝")
+
+	// Check GitHub for a newer release before starting the server.
+	checkForUpdate()
+	fmt.Println()
 
 	if *simulate {
 		fmt.Println("► Mode: SIMULATION (synthetic telemetry)")

@@ -14,6 +14,15 @@ STATIC_DIR="$BACKEND_DIR/static"
 
 TARGET="${1:-}"
 
+# Version: pass --version=x.y.z or falls back to git tag, then "dev"
+VERSION_ARG="${2:-}"
+if [[ "$VERSION_ARG" == --version=* ]]; then
+  APP_VERSION="${VERSION_ARG#--version=}"
+else
+  APP_VERSION="$(git -C "$SCRIPT_DIR" describe --tags --exact-match 2>/dev/null | sed 's/^v//' || true)"
+  APP_VERSION="${APP_VERSION:-dev}"
+fi
+
 echo ""
 echo "╔════════════════════════════════════════╗"
 echo "║     SimRacing Dashboard – Build        ║"
@@ -47,10 +56,12 @@ echo "  ✓ Done"
 
 # ── Step 4: Compile Go binary ──────────────────────────────────────────────────
 echo ""
+LDFLAGS="-s -w -X main.version=${APP_VERSION}"
+
 if [ "$TARGET" = "--windows" ]; then
-  echo "▶ Step 4: Cross-compiling for Windows (amd64)..."
+  echo "▶ Step 4: Cross-compiling for Windows (amd64)  [version: ${APP_VERSION}]..."
   CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
-    go build -ldflags="-s -w" \
+    go build -ldflags="$LDFLAGS" \
     -o "$SCRIPT_DIR/simracing-dashboard.exe" .
   echo "  ✓ Built: simracing-dashboard.exe"
   echo ""
@@ -58,9 +69,9 @@ if [ "$TARGET" = "--windows" ]; then
   echo "  and run: simracing-dashboard.exe"
   echo "  (make sure iRacing is running first)"
 else
-  echo "▶ Step 4: Building for host platform (macOS/Linux)..."
+  echo "▶ Step 4: Building for host platform (macOS/Linux)  [version: ${APP_VERSION}]..."
   CGO_ENABLED=0 \
-    go build -ldflags="-s -w" \
+    go build -ldflags="$LDFLAGS" \
     -o "$SCRIPT_DIR/simracing-dashboard" .
   echo "  ✓ Built: simracing-dashboard"
   echo ""

@@ -1,6 +1,6 @@
 <template>
   <div class="r-card p-3 flex flex-col items-center">
-    <svg :viewBox="`0 0 ${SIZE} ${SIZE}`" class="w-full max-w-[220px]" :style="`height: ${SIZE}px`" role="img" :aria-label="`Speed: ${Math.round(speed)} km/h`">
+    <svg :viewBox="`0 0 ${SIZE} ${SIZE}`" class="w-full max-w-[220px]" style="height: auto" role="img" :aria-label="`Speed: ${Math.round(speed)} km/h`">
       <!-- Background arc track -->
       <path
         :d="bgArc"

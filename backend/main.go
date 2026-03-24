@@ -27,7 +27,7 @@ import (
 	"simracing/storage"
 )
 
-//go:embed static
+//go:embed all:static
 var staticFiles embed.FS
 
 // shutdownCh is closed / sent-to from the console close handler (Windows)

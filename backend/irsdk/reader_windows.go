@@ -14,7 +14,33 @@ import (
 const (
 	memMapFileName = "Local\\IRSDKMemMapFileName"
 	dataValidEvent = "Local\\IRSDKDataValidEvent"
+	fileMapRead    = 0x0004
 )
+
+// kernel32 procs not exposed by golang.org/x/sys/windows
+var (
+	kernel32           = windows.NewLazyDLL("kernel32.dll")
+	procOpenFileMapping = kernel32.NewProc("OpenFileMappingW")
+	procOpenEvent       = kernel32.NewProc("OpenEventW")
+)
+
+func openFileMapping(access uint32, name *uint16) (windows.Handle, error) {
+	r, _, e := procOpenFileMapping.Call(uintptr(access), 0, uintptr(unsafe.Pointer(name)))
+	if r == 0 {
+		return 0, e
+	}
+	return windows.Handle(r), nil
+}
+
+func openEvent(access uint32, name *uint16) (windows.Handle, error) {
+	r, _, e := procOpenEvent.Call(uintptr(access), 0, uintptr(unsafe.Pointer(name)))
+	if r == 0 {
+		return 0, e
+	}
+	return windows.Handle(r), nil
+}
+
+// ── Reader ────────────────────────────────────────────────────────────────────
 
 type windowsReader struct {
 	mu          sync.RWMutex
@@ -30,9 +56,7 @@ type windowsReader struct {
 
 // NewWindowsReader creates a reader that reads from iRacing's shared memory.
 func NewWindowsReader() Reader {
-	return &windowsReader{
-		varMap: make(map[string]varInfo),
-	}
+	return &windowsReader{varMap: make(map[string]varInfo)}
 }
 
 func (r *windowsReader) Connect() error {
@@ -41,10 +65,10 @@ func (r *windowsReader) Connect() error {
 
 	namePtr, err := windows.UTF16PtrFromString(memMapFileName)
 	if err != nil {
-		return fmt.Errorf("utf16 conversion: %w", err)
+		return fmt.Errorf("utf16: %w", err)
 	}
 
-	h, err := windows.OpenFileMapping(windows.FILE_MAP_READ, false, namePtr)
+	h, err := openFileMapping(fileMapRead, namePtr)
 	if err != nil {
 		return fmt.Errorf("iRacing not running (OpenFileMapping): %w", err)
 	}
@@ -57,13 +81,12 @@ func (r *windowsReader) Connect() error {
 
 	// Optional event handle for efficient polling
 	eventNamePtr, _ := windows.UTF16PtrFromString(dataValidEvent)
-	eventH, _ := windows.OpenEvent(windows.SYNCHRONIZE, false, eventNamePtr)
+	eventH, _ := openEvent(windows.SYNCHRONIZE, eventNamePtr)
 
 	r.hMemMapFile = h
 	r.pSharedMem = mem
 	r.hDataEvent = eventH
 	r.header = (*irHeader)(unsafe.Pointer(mem)) //nolint:unsafeptr
-
 	r.buildVarMap()
 	r.connected = true
 	return nil
@@ -74,23 +97,16 @@ func (r *windowsReader) buildVarMap() {
 	if h.NumVars <= 0 || h.VarHeaderOffset <= 0 {
 		return
 	}
-	varHeaderBase := r.pSharedMem + uintptr(h.VarHeaderOffset)
+	base := r.pSharedMem + uintptr(h.VarHeaderOffset)
 	for i := int32(0); i < h.NumVars; i++ {
-		vh := (*irVarHeader)(unsafe.Pointer(varHeaderBase + uintptr(i)*144)) //nolint:unsafeptr
+		vh := (*irVarHeader)(unsafe.Pointer(base + uintptr(i)*144)) //nolint:unsafeptr
 		name := nullTermStr(vh.Name[:])
-		r.varMap[name] = varInfo{
-			offset: vh.Offset,
-			typ:    vh.Type,
-			count:  vh.Count,
-		}
+		r.varMap[name] = varInfo{offset: vh.Offset, typ: vh.Type, count: vh.Count}
 	}
 }
 
 func (r *windowsReader) IsConnected() bool {
-	if r.pSharedMem == 0 {
-		return false
-	}
-	return r.header.Status == 1
+	return r.pSharedMem != 0 && r.header.Status == 1
 }
 
 func (r *windowsReader) freshestBuf() *irVarBuf {
@@ -140,11 +156,11 @@ func (r *windowsReader) ri32arr(base uintptr, name string, max int) []int32 {
 	if !ok {
 		return nil
 	}
-	count := int(vi.count)
-	if count > max {
-		count = max
+	n := int(vi.count)
+	if n > max {
+		n = max
 	}
-	out := make([]int32, count)
+	out := make([]int32, n)
 	for i := range out {
 		out[i] = *(*int32)(unsafe.Pointer(base + uintptr(vi.offset) + uintptr(i*4))) //nolint:unsafeptr
 	}
@@ -156,11 +172,11 @@ func (r *windowsReader) rf32arr(base uintptr, name string, max int) []float32 {
 	if !ok {
 		return nil
 	}
-	count := int(vi.count)
-	if count > max {
-		count = max
+	n := int(vi.count)
+	if n > max {
+		n = max
 	}
-	out := make([]float32, count)
+	out := make([]float32, n)
 	for i := range out {
 		out[i] = *(*float32)(unsafe.Pointer(base + uintptr(vi.offset) + uintptr(i*4))) //nolint:unsafeptr
 	}
@@ -174,7 +190,7 @@ func (r *windowsReader) ReadFrame() (*TelemetryFrame, error) {
 		}
 	}
 
-	// Wait for fresh data (33ms timeout = ~30Hz minimum)
+	// Wait for fresh data (33 ms timeout ≈ 30 Hz minimum)
 	if r.hDataEvent != 0 {
 		windows.WaitForSingleObject(r.hDataEvent, 33)
 	} else {
@@ -224,31 +240,26 @@ func (r *windowsReader) ReadFrame() (*TelemetryFrame, error) {
 		CarIdxLap:         r.ri32arr(base, "CarIdxLap", 64),
 	}
 
-	// Refresh session YAML when it changes
+	// Refresh session YAML on change
 	newUpd := r.header.SessionInfoUpdate
 	if newUpd != r.sessionUpd {
 		r.sessionUpd = newUpd
 		offset := r.header.SessionInfoOffset
 		length := r.header.SessionInfoLen
 		if offset > 0 && length > 0 {
-			yamlBytes := make([]byte, length)
+			b := make([]byte, length)
 			for i := int32(0); i < length; i++ {
-				yamlBytes[i] = *(*byte)(unsafe.Pointer(r.pSharedMem + uintptr(offset) + uintptr(i))) //nolint:unsafeptr
+				b[i] = *(*byte)(unsafe.Pointer(r.pSharedMem + uintptr(offset) + uintptr(i))) //nolint:unsafeptr
 			}
-			r.sessionYAML = string(yamlBytes)
+			r.sessionYAML = string(b)
 		}
 	}
 
 	return frame, nil
 }
 
-func (r *windowsReader) SessionYAML() (string, error) {
-	return r.sessionYAML, nil
-}
-
-func (r *windowsReader) SessionUpdateCount() int32 {
-	return r.sessionUpd
-}
+func (r *windowsReader) SessionYAML() (string, error)  { return r.sessionYAML, nil }
+func (r *windowsReader) SessionUpdateCount() int32      { return r.sessionUpd }
 
 func (r *windowsReader) Close() {
 	if r.pSharedMem != 0 {

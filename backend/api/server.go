@@ -40,7 +40,7 @@ func NewServer(h *hub.Hub, ring *storage.RingBuffer, db *storage.DB, simulate bo
 	}
 
 	// Serve the embedded Nuxt SPA (catch-all, must be last)
-	staticFS, err := fs.Sub(StaticFiles, "static")
+	staticFS, err := fs.Sub(staticFiles, "static")
 	if err != nil {
 		panic("embedded static files not found – run 'npm run generate' first: " + err.Error())
 	}

@@ -7,13 +7,19 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
+
+	"github.com/grandcat/zeroconf"
+	"github.com/mdp/qrterminal/v3"
 
 	"simracing/api"
 	"simracing/hub"
@@ -24,14 +30,24 @@ import (
 //go:embed static
 var staticFiles embed.FS
 
+// shutdownCh is closed / sent-to from the console close handler (Windows)
+// or a SIGINT/SIGTERM signal to trigger graceful shutdown.
+var shutdownCh = make(chan struct{}, 2)
+
 func main() {
 	var (
 		addr     = flag.String("addr", ":8080", "HTTP listen address")
 		simulate = flag.Bool("simulate", false, "Simulation mode (no iRacing required)")
 		dbPath   = flag.String("db", "simracing.db", "SQLite database path")
 		open     = flag.Bool("open", true, "Automatically open browser on start")
+		mdnsName = flag.String("name", "simracing", "mDNS hostname  → <name>.local")
 	)
 	flag.Parse()
+
+	// Set console title and register close-window → shutdown handler (Windows only).
+	initConsole()
+
+	port := portFromAddr(*addr)
 
 	fmt.Println("╔════════════════════════════════════════╗")
 	fmt.Println("║     SimRacing Live Dashboard v1.0      ║")
@@ -42,7 +58,8 @@ func main() {
 	} else {
 		fmt.Println("► Mode: LIVE (iRacing shared memory)")
 	}
-	fmt.Printf("► Address: http://localhost%s\n", *addr)
+	fmt.Printf("► Local:    http://localhost%s\n", *addr)
+	fmt.Printf("► Network:  http://%s.local:%d\n", *mdnsName, port)
 	fmt.Printf("► Database: %s\n", *dbPath)
 	fmt.Println()
 
@@ -53,7 +70,7 @@ func main() {
 	}
 	defer db.Close()
 
-	// 120s ring buffer at 60Hz
+	// 120s ring buffer at 60 Hz
 	ring := storage.NewRingBuffer(7200)
 
 	// --- WebSocket Hub ---
@@ -70,7 +87,6 @@ func main() {
 
 	// --- Background Workers ---
 	ctx, cancel := context.WithCancel(context.Background())
-
 	go telemetryPump(ctx, reader, ring, wsHub, *simulate)
 	go storage.NewDownsampler(db, ring).Run(ctx)
 
@@ -89,20 +105,51 @@ func main() {
 		}
 	}()
 
-	// Auto-open browser
-	if *open {
-		time.Sleep(500 * time.Millisecond)
-		openBrowser("http://localhost" + *addr)
+	// --- mDNS / Bonjour registration ---
+	mdnsServer, mdnsErr := startMDNS(*mdnsName, port)
+	if mdnsErr != nil {
+		fmt.Printf("► mDNS: unavailable (%v) – use IP address instead\n", mdnsErr)
+	} else {
+		fmt.Printf("► mDNS: registered as http://%s.local:%d\n", *mdnsName, port)
 	}
 
-	fmt.Println("► Dashboard running. Press Ctrl+C to stop.")
+	// --- QR Code for the first non-loopback IPv4 address ---
+	if networkIP := firstNetworkIP(); networkIP != "" {
+		networkURL := fmt.Sprintf("http://%s:%d", networkIP, port)
+		fmt.Printf("\n► Scan to open on your phone / tablet:\n   %s\n\n", networkURL)
+		qrterminal.GenerateWithConfig(networkURL, qrterminal.Config{
+			Level:     qrterminal.M,
+			Writer:    os.Stdout,
+			BlackChar: qrterminal.BLACK,
+			WhiteChar: qrterminal.WHITE,
+			QuietZone: 1,
+		})
+		fmt.Println()
+	}
+
+	// --- Auto-open browser ---
+	if *open {
+		time.Sleep(500 * time.Millisecond)
+		openBrowser(fmt.Sprintf("http://localhost%s", *addr))
+	}
+
+	printNetworkAddresses(port)
+	fmt.Println("► Dashboard running. Press Ctrl+C to stop (or close this window).")
 
 	// --- Graceful Shutdown ---
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	// Wait for SIGINT / SIGTERM  OR  console-window close (Windows).
+	osSignal := make(chan os.Signal, 1)
+	signal.Notify(osSignal, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case <-osSignal:
+	case <-shutdownCh:
+	}
 
 	fmt.Println("\n► Shutting down...")
+	if mdnsServer != nil {
+		mdnsServer.Shutdown()
+	}
 	cancel()
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
@@ -111,7 +158,86 @@ func main() {
 	fmt.Println("► Goodbye!")
 }
 
-// wsMessage is the envelope for all WebSocket frames
+// startMDNS registers the service via mDNS so it is reachable as <name>.local.
+func startMDNS(name string, port int) (*zeroconf.Server, error) {
+	return zeroconf.Register(
+		"SimRacing Dashboard", // instance name
+		"_http._tcp",          // service type
+		"local.",              // domain
+		port,
+		[]string{"path=/"}, // TXT records
+		nil,                // bind to all interfaces
+	)
+}
+
+// portFromAddr extracts the integer port from ":8080" or "0.0.0.0:8080".
+func portFromAddr(addr string) int {
+	parts := strings.Split(addr, ":")
+	if len(parts) == 0 {
+		return 8080
+	}
+	p, err := strconv.Atoi(parts[len(parts)-1])
+	if err != nil {
+		return 8080
+	}
+	return p
+}
+
+// firstNetworkIP returns the first non-loopback IPv4 address or "".
+func firstNetworkIP() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return ""
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+		addrs, _ := iface.Addrs()
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip != nil && !ip.IsLoopback() && ip.To4() != nil {
+				return ip.String()
+			}
+		}
+	}
+	return ""
+}
+
+// printNetworkAddresses prints all non-loopback IPv4 addresses.
+func printNetworkAddresses(port int) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+		addrs, _ := iface.Addrs()
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.IsLoopback() || ip.To4() == nil {
+				continue
+			}
+			fmt.Printf("► Network: http://%s:%d\n", ip.String(), port)
+		}
+	}
+}
+
+// wsMessage is the envelope for all WebSocket frames.
 type wsMessage struct {
 	Type string `json:"type"`
 	TS   int64  `json:"ts"`
@@ -126,7 +252,6 @@ func telemetryPump(ctx context.Context, r irsdk.Reader, ring *storage.RingBuffer
 	var lastSessionUpd int32
 	reconnectBackoff := time.Second
 
-	// Initial connect attempt
 	if err := r.Connect(); err != nil {
 		log.Printf("pump: initial connect failed (%v) – will retry", err)
 	}
@@ -147,17 +272,15 @@ func telemetryPump(ctx context.Context, r irsdk.Reader, ring *storage.RingBuffer
 				}
 				continue
 			}
-			reconnectBackoff = time.Second // reset on success
+			reconnectBackoff = time.Second
 
 			ring.Push(frame)
 
-			// Marshal and broadcast telemetry
 			msg := wsMessage{Type: "telemetry", TS: time.Now().UnixMilli(), Data: frame}
 			if b, err := json.Marshal(msg); err == nil {
 				h.Broadcast(b)
 			}
 
-			// Broadcast session YAML when it changes
 			upd := r.SessionUpdateCount()
 			if upd != lastSessionUpd {
 				lastSessionUpd = upd

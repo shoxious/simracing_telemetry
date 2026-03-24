@@ -87,6 +87,8 @@
 <script setup lang="ts">
 const { connected } = useIRacing()
 const { wsConnected, wsStatusText } = useWebSocket()
+// Keep the screen awake while the dashboard is open
+useWakeLock()
 </script>
 
 <style scoped>

@@ -48,8 +48,25 @@
       </div>
     </div>
 
-    <!-- Right: FPS + status -->
+    <!-- Right: Wake lock + FPS + status -->
     <div class="flex items-center gap-2 flex-shrink-0">
+
+      <!-- Wake lock indicator: screen-off icon, dimmed when inactive -->
+      <div
+        :title="wakeLockActive ? 'Screen will stay on' : 'Screen wake lock inactive'"
+        class="flex items-center"
+      >
+        <svg
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          class="w-3.5 h-3.5 transition-colors duration-300"
+          :class="wakeLockActive ? 'text-r-blue' : 'text-r-dim'"
+        >
+          <!-- sun / screen-on icon -->
+          <path d="M8 11A3 3 0 108 5a3 3 0 000 6zm0-1.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 1.5a.75.75 0 01.75.75v1a.75.75 0 01-1.5 0v-1A.75.75 0 018 1.5zm0 11a.75.75 0 01.75.75v1a.75.75 0 01-1.5 0v-1A.75.75 0 018 12.5zm5.25-5.25a.75.75 0 010 1.5h-1a.75.75 0 010-1.5h1zm-11 0a.75.75 0 010 1.5h-1a.75.75 0 010-1.5h1zm9.6-3.85a.75.75 0 010 1.06l-.707.707a.75.75 0 01-1.06-1.06l.707-.707a.75.75 0 011.06 0zM4.16 11.89a.75.75 0 010 1.06l-.707.707a.75.75 0 01-1.06-1.06l.707-.707a.75.75 0 011.06 0zM12.55 11.89a.75.75 0 011.06 1.06l-.707.707a.75.75 0 01-1.06-1.06l.707-.707zM3.16 4.11a.75.75 0 011.06-1.06l.707.707A.75.75 0 013.867 4.818L3.16 4.11z"/>
+        </svg>
+      </div>
+
       <span v-if="connected" class="hidden lg:block text-xs font-mono text-r-dim">
         {{ store.fps }}<span class="text-r-dim/60">fps</span>
       </span>
@@ -72,6 +89,7 @@ import { useIRacingStore } from '~/stores/iracing'
 const store = useIRacingStore()
 const { connected, simulate } = storeToRefs(store)
 const { isGreen, isYellow, isRed, position, fmtTime } = useIRacing()
+const { active: wakeLockActive } = useWakeLock()
 
 const bestLap  = computed(() => store.telemetry?.LapBestLapTime ?? -1)
 const hasBest  = computed(() => bestLap.value > 0)

@@ -2,7 +2,7 @@
   <div class="r-card p-4">
     <div class="r-label mb-3 flex items-center justify-between">
       <span>Tire Temperatures</span>
-      <div class="flex items-center gap-2 text-[10px] font-mono">
+      <div class="hidden sm:flex items-center gap-2 text-[10px] font-mono">
         <span style="color:#4cc9f0">COLD</span>
         <div class="w-16 h-1 rounded" style="background: linear-gradient(to right,#4cc9f0,#06d6a0,#ffd166,#e63946)" />
         <span style="color:#e63946">HOT</span>

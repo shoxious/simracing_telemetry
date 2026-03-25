@@ -27,7 +27,7 @@
     </Transition>
 
     <!-- Current lap prominent display -->
-    <div class="flex items-end gap-3">
+    <div class="flex items-end gap-3 md:flex-col md:items-start md:gap-1">
       <div class="flex-1">
         <div class="r-label text-[9px] mb-1 tracking-widest">CURRENT</div>
         <div

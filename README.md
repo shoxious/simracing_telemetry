@@ -2,15 +2,6 @@
 
 Real-time iRacing telemetry dashboard for desktop, tablet and mobile — served as a **single self-contained Windows EXE**.
 
-```
-┌─────────────────────────────────────────────────────┐
-│              simracing-dashboard.exe                │
-│                                                     │
-│  iRacing SDK ──► WebSocket (60 Hz) ──► Browser     │
-│  Shared Memory    REST API /api/*     Nuxt 4 SPA    │
-│                   SQLite Storage      Mobile-First  │
-└─────────────────────────────────────────────────────┘
-```
 
 ---
 

@@ -5,9 +5,9 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 let fpsTimer: ReturnType<typeof setInterval> | null = null
 let reconnectAttempts = 0
 
-// Shared reactive state accessible from any composable call
-const wsConnected = ref(false)
-const wsStatusText = ref('Connecting...')
+// Shared reactive state accessible from any composable call — exported for direct import
+export const wsConnected = ref(false)
+export const wsStatusText = ref('Connecting...')
 
 function getWsUrl(): string {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -37,10 +37,13 @@ export function useWebSocket() {
       reconnectAttempts = 0
       wsConnected.value = true
       wsStatusText.value = 'Connected – waiting for iRacing...'
-      store.setStatus(true, store.simulate)
+      if (!store.demoMode) {
+        store.setStatus(true, store.simulate)
+      }
     }
 
     ws.onmessage = (event: MessageEvent) => {
+      if (store.demoMode) return
       try {
         const msg = JSON.parse(event.data as string)
         switch (msg.type) {
@@ -64,7 +67,9 @@ export function useWebSocket() {
       wsStatusText.value = reconnectAttempts > 0
         ? `Reconnecting... (attempt ${reconnectAttempts})`
         : 'Connection lost – reconnecting...'
-      store.setStatus(false, store.simulate)
+      if (!store.demoMode) {
+        store.setStatus(false, store.simulate)
+      }
       scheduleReconnect()
     }
 

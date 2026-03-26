@@ -61,6 +61,21 @@
     <!-- Right: Wake lock + FPS + status -->
     <div class="flex items-center gap-2 flex-shrink-0">
 
+      <!-- Demo controls -->
+      <template v-if="isDemoMode">
+        <span class="px-1.5 py-0.5 rounded text-[9px] font-mono bg-r-accent/20 text-r-accent border border-r-accent/30 tracking-widest">DEMO</span>
+        <button
+          class="px-2 py-1 rounded text-[10px] font-mono bg-r-surface border border-r-border text-r-muted hover:text-r-text hover:border-r-accent/50 transition-colors"
+          @click="stopDemo"
+        >Stop</button>
+      </template>
+      <template v-else-if="!wsConnected">
+        <button
+          class="px-2 py-1 rounded text-[10px] font-mono bg-r-accent/10 border border-r-accent/30 text-r-accent hover:bg-r-accent/20 transition-colors"
+          @click="startDemo"
+        >Demo</button>
+      </template>
+
       <!-- Wake lock indicator: screen-off icon, dimmed when inactive -->
       <div
         :title="wakeLockActive ? 'Screen will stay on' : 'Screen wake lock inactive'"
@@ -95,12 +110,15 @@
 
 <script setup lang="ts">
 import { useIRacingStore } from '~/stores/iracing'
+import { wsConnected } from '~/composables/useWebSocket'
+import { useDemo } from '~/composables/useDemo'
 
 const store = useIRacingStore()
 const { connected, simulate } = storeToRefs(store)
 const { isGreen, isYellow, isRed, position, fmtTime } = useIRacing()
 const { active: wakeLockActive } = useWakeLock()
 const { trackName } = useSession()
+const { isDemoMode, startDemo, stopDemo } = useDemo()
 
 const bestLap  = computed(() => store.telemetry?.LapBestLapTime ?? -1)
 const hasBest  = computed(() => bestLap.value > 0)

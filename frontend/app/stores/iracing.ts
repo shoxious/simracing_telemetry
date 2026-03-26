@@ -45,6 +45,7 @@ export const useIRacingStore = defineStore('iracing', {
   state: () => ({
     connected:   false,
     simulate:    false,
+    demoMode:    false,
     telemetry:   null as TelemetryFrame | null,
     sessionYaml: null as string | null,
     laps:        [] as LapRecord[],
@@ -140,6 +141,18 @@ export const useIRacingStore = defineStore('iracing', {
     tickFPS() {
       this._fps = this._frameCount
       this._frameCount = 0
+    },
+
+    resetForDemo() {
+      this.connected   = false
+      this.simulate    = false
+      this.demoMode    = false
+      this.telemetry   = null
+      this.sessionYaml = null
+      this.laps        = []
+      this.lastUpdated = 0
+      this._frameCount = 0
+      this._fps        = 0
     },
   },
 })

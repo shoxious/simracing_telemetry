@@ -103,6 +103,7 @@ declare global {
   const useCookie: typeof import('../../node_modules/nuxt/dist/app/composables/cookie').useCookie
   const useCssModule: typeof import('../../node_modules/vue').useCssModule
   const useCssVars: typeof import('../../node_modules/vue').useCssVars
+  const useDemo: typeof import('../../app/composables/useDemo').useDemo
   const useError: typeof import('../../node_modules/nuxt/dist/app/composables/error').useError
   const useFetch: typeof import('../../node_modules/nuxt/dist/app/composables/fetch').useFetch
   const useHead: typeof import('../../node_modules/nuxt/dist/app/composables/head').useHead
@@ -118,6 +119,7 @@ declare global {
   const useModel: typeof import('../../node_modules/vue').useModel
   const useNuxtApp: typeof import('../../node_modules/nuxt/dist/app/nuxt').useNuxtApp
   const useNuxtData: typeof import('../../node_modules/nuxt/dist/app/composables/asyncData').useNuxtData
+  const useNuxtDevTools: typeof import('../../node_modules/@nuxt/devtools/dist/runtime/use-nuxt-devtools').useNuxtDevTools
   const usePinia: typeof import('../../node_modules/@pinia/nuxt/dist/runtime/composables').usePinia
   const usePreviewMode: typeof import('../../node_modules/nuxt/dist/app/composables/preview').usePreviewMode
   const useRequestEvent: typeof import('../../node_modules/nuxt/dist/app/composables/ssr').useRequestEvent
@@ -165,11 +167,13 @@ declare global {
   const useServerHead: typeof import('../../node_modules/nuxt/dist/app/composables/head').useServerHead
   const useServerHeadSafe: typeof import('../../node_modules/nuxt/dist/app/composables/head').useServerHeadSafe
   const useServerSeoMeta: typeof import('../../node_modules/nuxt/dist/app/composables/head').useServerSeoMeta
+  const useSession: typeof import('../../app/composables/useSession').useSession
   const useShadowRoot: typeof import('../../node_modules/vue').useShadowRoot
   const useSlots: typeof import('../../node_modules/vue').useSlots
   const useState: typeof import('../../node_modules/nuxt/dist/app/composables/state').useState
   const useTemplateRef: typeof import('../../node_modules/vue').useTemplateRef
   const useTransitionState: typeof import('../../node_modules/vue').useTransitionState
+  const useWakeLock: typeof import('../../app/composables/useWakeLock').useWakeLock
   const useWebSocket: typeof import('../../app/composables/useWebSocket').useWebSocket
   const watch: typeof import('../../node_modules/vue').watch
   const watchEffect: typeof import('../../node_modules/vue').watchEffect
@@ -181,12 +185,17 @@ declare global {
   const withMemo: typeof import('../../node_modules/vue').withMemo
   const withModifiers: typeof import('../../node_modules/vue').withModifiers
   const withScopeId: typeof import('../../node_modules/vue').withScopeId
+  const wsConnected: typeof import('../../app/composables/useWebSocket').wsConnected
+  const wsStatusText: typeof import('../../app/composables/useWebSocket').wsStatusText
 }
 // for type re-export
 declare global {
   // @ts-ignore
   export type { Component, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from '../../node_modules/vue'
   import('../../node_modules/vue')
+  // @ts-ignore
+  export type { DriverEntry, ParsedSession } from '../../app/composables/useSession'
+  import('../../app/composables/useSession')
   // @ts-ignore
   export type { TelemetryFrame, LapRecord } from '../../app/stores/iracing'
   import('../../app/stores/iracing')
@@ -297,6 +306,7 @@ declare module 'vue' {
     readonly useCookie: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['useCookie']>
     readonly useCssModule: UnwrapRef<typeof import('../../node_modules/vue')['useCssModule']>
     readonly useCssVars: UnwrapRef<typeof import('../../node_modules/vue')['useCssVars']>
+    readonly useDemo: UnwrapRef<typeof import('../../app/composables/useDemo')['useDemo']>
     readonly useError: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/error')['useError']>
     readonly useFetch: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/fetch')['useFetch']>
     readonly useHead: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/head')['useHead']>
@@ -312,6 +322,7 @@ declare module 'vue' {
     readonly useModel: UnwrapRef<typeof import('../../node_modules/vue')['useModel']>
     readonly useNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/nuxt')['useNuxtApp']>
     readonly useNuxtData: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/asyncData')['useNuxtData']>
+    readonly useNuxtDevTools: UnwrapRef<typeof import('../../node_modules/@nuxt/devtools/dist/runtime/use-nuxt-devtools')['useNuxtDevTools']>
     readonly usePinia: UnwrapRef<typeof import('../../node_modules/@pinia/nuxt/dist/runtime/composables')['usePinia']>
     readonly usePreviewMode: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/preview')['usePreviewMode']>
     readonly useRequestEvent: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/ssr')['useRequestEvent']>
@@ -359,11 +370,13 @@ declare module 'vue' {
     readonly useServerHead: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/head')['useServerHead']>
     readonly useServerHeadSafe: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/head')['useServerHeadSafe']>
     readonly useServerSeoMeta: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/head')['useServerSeoMeta']>
+    readonly useSession: UnwrapRef<typeof import('../../app/composables/useSession')['useSession']>
     readonly useShadowRoot: UnwrapRef<typeof import('../../node_modules/vue')['useShadowRoot']>
     readonly useSlots: UnwrapRef<typeof import('../../node_modules/vue')['useSlots']>
     readonly useState: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/state')['useState']>
     readonly useTemplateRef: UnwrapRef<typeof import('../../node_modules/vue')['useTemplateRef']>
     readonly useTransitionState: UnwrapRef<typeof import('../../node_modules/vue')['useTransitionState']>
+    readonly useWakeLock: UnwrapRef<typeof import('../../app/composables/useWakeLock')['useWakeLock']>
     readonly useWebSocket: UnwrapRef<typeof import('../../app/composables/useWebSocket')['useWebSocket']>
     readonly watch: UnwrapRef<typeof import('../../node_modules/vue')['watch']>
     readonly watchEffect: UnwrapRef<typeof import('../../node_modules/vue')['watchEffect']>
@@ -375,5 +388,7 @@ declare module 'vue' {
     readonly withMemo: UnwrapRef<typeof import('../../node_modules/vue')['withMemo']>
     readonly withModifiers: UnwrapRef<typeof import('../../node_modules/vue')['withModifiers']>
     readonly withScopeId: UnwrapRef<typeof import('../../node_modules/vue')['withScopeId']>
+    readonly wsConnected: UnwrapRef<typeof import('../../app/composables/useWebSocket')['wsConnected']>
+    readonly wsStatusText: UnwrapRef<typeof import('../../app/composables/useWebSocket')['wsStatusText']>
   }
 }

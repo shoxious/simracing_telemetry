@@ -16,9 +16,11 @@ type LazyComponent<T> = DefineComponent<HydrationStrategies, {}, {}, {}, {}, {},
 
 export const AppNavBar: typeof import("../app/components/AppNavBar.vue")['default']
 export const AppStatusBar: typeof import("../app/components/AppStatusBar.vue")['default']
+export const SessionCard: typeof import("../app/components/SessionCard.vue")['default']
 export const ChartsTelemetryChart: typeof import("../app/components/charts/TelemetryChart.vue")['default']
 export const GaugesFuelGauge: typeof import("../app/components/gauges/FuelGauge.vue")['default']
 export const GaugesRpmGauge: typeof import("../app/components/gauges/RpmGauge.vue")['default']
+export const GaugesShiftLightBar: typeof import("../app/components/gauges/ShiftLightBar.vue")['default']
 export const GaugesSpeedGauge: typeof import("../app/components/gauges/SpeedGauge.vue")['default']
 export const InputsPedalBars: typeof import("../app/components/inputs/PedalBars.vue")['default']
 export const TimingLapTable: typeof import("../app/components/timing/LapTable.vue")['default']
@@ -50,9 +52,11 @@ export const Body: typeof import("../node_modules/nuxt/dist/head/runtime/compone
 export const NuxtIsland: typeof import("../node_modules/nuxt/dist/app/components/nuxt-island")['default']
 export const LazyAppNavBar: LazyComponent<typeof import("../app/components/AppNavBar.vue")['default']>
 export const LazyAppStatusBar: LazyComponent<typeof import("../app/components/AppStatusBar.vue")['default']>
+export const LazySessionCard: LazyComponent<typeof import("../app/components/SessionCard.vue")['default']>
 export const LazyChartsTelemetryChart: LazyComponent<typeof import("../app/components/charts/TelemetryChart.vue")['default']>
 export const LazyGaugesFuelGauge: LazyComponent<typeof import("../app/components/gauges/FuelGauge.vue")['default']>
 export const LazyGaugesRpmGauge: LazyComponent<typeof import("../app/components/gauges/RpmGauge.vue")['default']>
+export const LazyGaugesShiftLightBar: LazyComponent<typeof import("../app/components/gauges/ShiftLightBar.vue")['default']>
 export const LazyGaugesSpeedGauge: LazyComponent<typeof import("../app/components/gauges/SpeedGauge.vue")['default']>
 export const LazyInputsPedalBars: LazyComponent<typeof import("../app/components/inputs/PedalBars.vue")['default']>
 export const LazyTimingLapTable: LazyComponent<typeof import("../app/components/timing/LapTable.vue")['default']>
